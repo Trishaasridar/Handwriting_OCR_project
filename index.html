@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwritten Notes to Text Converter</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f0e8;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            background-image: url('https://picsum.photos/seed/woodentable/1920/1080.jpg');
+            background-size: cover;
+            background-attachment: fixed;
+            min-height: 10vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            color: #5a3e2b;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-style: italic;
+            color: #7d6d5d;
+        }
+
+        /* Book Container Styles */
+        .book-container {
+            perspective: 2000px;
+            margin-bottom: 50px;
+        }
+
+        .book {
+            width: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        /* Open Book Style */
+        .book.open-book {
+            height: 800px;
+            background: linear-gradient(to right,
+                    #f8f5e9 0%,
+                    #f8f5e9 48%,
+                    #d9c8a9 48%,
+                    #d9c8a9 52%,
+                    #f8f5e9 52%,
+                    #f8f5e9 100%);
+            border-radius: 0 10px 10px 0;
+            box-shadow:
+                0 10px 40px rgba(0, 0, 0, 0.3),
+                inset 0 0 40px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            /* Enable 3D transforms for turning effect */
+            transform-style: preserve-3d; 
+        }
+
+        .book.open-book::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 48%;
+            width: 4%;
+            height: 100%;
+            background: linear-gradient(to right,
+                    rgba(0, 0, 0, 0.2) 0%,
+                    rgba(0, 0, 0, 0.4) 50%,
+                    rgba(0, 0, 0, 0.2) 100%);
+            z-index: 10;
+        }
+
+        .book-pages {
+            display: flex;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        .page {
+            flex: 1;
+            padding: 40px;
+            position: relative;
+            background-image: url('https://picsum.photos/seed/papertexture/1200/600.jpg');
+            background-size: cover;
+            background-position: center;
+            background-blend-mode: overlay;
+            background-color: rgba(248, 245, 233, 0.95);
+            overflow: hidden;
+            
+            /* Enable 3D space and transition for flipping */
+            transform-origin: center center;
+            transition: transform 0.8s ease-in-out, opacity 0.4s;
+            z-index: 20; /* Ensure pages are above the spine when flipping */
+            backface-visibility: hidden;
+        }
+
+        /* NEW CSS for Page Flip Effect */
+        .page.page-flipping {
+            /* Flip back (for next page) or forward (for prev page) */
+            transform: rotateY(-180deg) scale(0.95); 
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Adjustments for the Left/Right Page Flipping */
+        .page-left.page-flipping {
+            /* Flip from the right edge (spine) to the left */
+            transform-origin: right center;
+            transform: rotateY(-180deg);
+        }
+
+        .page-right.page-flipping {
+            /* Flip from the left edge (spine) to the right (This happens on the next page flip) */
+            transform-origin: left center;
+            transform: rotateY(180deg);
+        }
+        /* End NEW CSS for Page Flip Effect */
+
+
+        .page-left {
+            border-right: 2px solid #d9c8a9;
+            padding-right: 50px;
+        }
+
+        .page-right {
+            border-left: 2px solid #d9c8a9;
+            padding-left: 50px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 28px,
+                    rgba(214, 199, 169, 0.3) 28px,
+                    rgba(214, 199, 169, 0.3) 29px);
+            pointer-events: none;
+        }
+
+        /* Book Spine Effect */
+        .book-spine {
+            position: absolute;
+            top: 0;
+            left: 48%;
+            width: 4%;
+            height: 100%;
+            background: linear-gradient(to right,
+                    #8b4513 0%,
+                    #a0522d 50%,
+                    #8b4513 100%);
+            transform: translateZ(-10px);
+            box-shadow:
+                inset 0 0 20px rgba(0, 0, 0, 0.5),
+                0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 5;
+        }
+
+        /* Closed Book Style */
+        .book.closed-book {
+            height: 800px;
+            background-color: #8b4513;
+            border-radius: 5px 15px 15px 5px;
+            box-shadow:
+                5px 5px 20px rgba(0, 0, 0, 0.3),
+                inset 0 0 30px rgba(0, 0, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            background-image: url('https://picsum.photos/seed/leathercover/1200/600.jpg');
+            background-size: cover;
+            background-position: center;
+            transition: all 0.8s ease;
+        }
+
+        .book.closed-book::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(139, 69, 19, 0.7);
+            z-index: 1;
+        }
+
+        .book.opening {
+            animation: openBook 0.8s forwards;
+        }
+
+        @keyframes openBook {
+            0% {
+                height: 800px;
+            }
+
+            100% {
+                height: 800px;
+            }
+        }
+
+        /* Positioning for the second book - positioned below the first book */
+        .search-book-container {
+            position: relative;
+            width: 50%;
+            /* Half the width of the main book */
+            margin: 0 auto;
+            /* Center horizontally */
+            margin-top: 20px;
+            /* Space between books */
+            z-index: 2;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+            z-index: 1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: #5a3e2b;
+            font-size: 16px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #d9c8a9;
+            border-radius: 6px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 16px;
+            background-color: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #8b4513;
+            box-shadow: 0 0 8px rgba(139, 69, 19, 0.3);
+            background-color: rgba(255, 255, 255, 0.95);
+        }
+
+        textarea {
+            height: 180px;
+            resize: vertical;
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-label {
+            display: block;
+            padding: 14px;
+            background: linear-gradient(135deg, #8b4513 0%, #a0522d 100%);
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .file-upload:hover .file-upload-label {
+            background: linear-gradient(135deg, #a0522d 0%, #8b4513 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(139, 69, 19, 0.3);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #8b4513 0%, #a0522d 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #5a3e2b 0%, #7d5d44 100%);
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #7d5d44 0%, #5a3e2b 100%);
+            box-shadow: 0 6px 20px rgba(90, 62, 43, 0.4);
+        }
+
+        /* Converted Text Display */
+        .text-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 1;
+        }
+
+        .converted-text {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.6);
+            border-radius: 8px;
+            font-family: 'Georgia', serif;
+            font-size: 16px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            border: 1px solid rgba(217, 200, 169, 0.5);
+            min-height: 380px;
+            max-height: 380px;
+        }
+
+        .converted-text::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .converted-text::-webkit-scrollbar-track {
+            background: rgba(217, 200, 169, 0.3);
+            border-radius: 4px;
+        }
+
+        .converted-text::-webkit-scrollbar-thumb {
+            background: #8b4513;
+            border-radius: 4px;
+        }
+
+        .download-container {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Search Form on Book Cover */
+        .search-form-on-cover {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 280px;
+            z-index: 3;
+            padding: 20px;
+        }
+
+        .search-form-on-cover .form-group {
+            margin-bottom: 15px;
+        }
+
+        .search-form-on-cover label {
+            color: #f5f0e8;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            font-size: 14px;
+        }
+
+        .search-form-on-cover input[type="text"] {
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #f5f0e8;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .search-form-on-cover input[type="text"]:focus {
+            border-color: rgba(255, 255, 255, 0.4);
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .search-form-on-cover input[type="text"]::placeholder {
+            color: rgba(245, 240, 232, 0.7);
+        }
+
+        .search-form-on-cover .btn {
+            width: 100%;
+            margin-top: 10px;
+            background: linear-gradient(135deg, rgba(139, 69, 19, 0.7) 0%, rgba(160, 82, 45, 0.7) 100%);
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .search-form-on-cover .btn:hover {
+            background: linear-gradient(135deg, rgba(160, 82, 45, 0.8) 0%, rgba(139, 69, 19, 0.8) 100%);
+        }
+
+        /* Cartoon Boy Image */
+        .cartoon-boy {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            width: 60px;
+            height: 60px;
+            z-index: 2;
+            filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        /* Note Cards */
+        .notes-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            /* 💡 CHANGE: Use 4 rows for 4 cards per column */
+            grid-template-rows: repeat(4, 1fr);
+            gap: 15px;
+            /* Slightly reduced gap for fitting 4 rows */
+            height: calc(100% - 60px);
+        }
+
+        .note-card {
+            background: #fff8e7;
+            border: 2px solid #d4a574;
+            border-radius: 8px;
+            padding: 15px;
+            position: relative;
+            box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.1);
+            transform: rotate(-1deg);
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .note-card:nth-child(even) {
+            transform: rotate(1deg);
+        }
+
+        .note-card:hover {
+            transform: rotate(0deg) scale(1.05);
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        .note-card::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 20%;
+            width: 60%;
+            height: 10px;
+            background: rgba(255, 255, 200, 0.5);
+            border: 1px solid #d4a574;
+            border-radius: 2px;
+        }
+
+        .note-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 12px;
+            border-bottom: 1px dashed #d4a574;
+            padding-bottom: 5px;
+        }
+
+        .note-date-time {
+            color: #8b7355;
+            font-weight: 500;
+        }
+
+        .note-name-course {
+            color: #5a3e2b;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .note-content {
+            flex: 1;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #4a4a4a;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .note-download {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: #8b4513;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .note-download:hover {
+            background: #a0522d;
+            transform: scale(1.1);
+        }
+
+        /* Page Navigation */
+        .page-navigation {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            z-index: 10;
+        }
+
+        .page-btn {
+            background: #8b4513;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 16px;
+            position: absolute;
+        }
+
+        .page-btn.prev {
+            bottom: 20px;
+            left: 20px;
+        }
+
+        .page-btn.next {
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .page-btn:hover {
+            background: #a0522d;
+            transform: scale(1.1);
+        }
+
+        .page-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+
+        .page-indicator {
+            color: #5a3e2b;
+            font-weight: 600;
+            font-size: 14px;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* No Files Message */
+        .no-files-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #8b7355;
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Modal for expanded view */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #f8f5e9;
+            margin: 5% auto;
+            padding: 20px;
+            border: 2px solid #8b4513;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close {
+            color: #8b4513;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+        }
+
+        .close:hover {
+            color: #a0522d;
+        }
+
+        .expanded-card {
+            background: #fff8e7;
+            border: 2px solid #d4a574;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .expanded-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border: 1px solid #ccc;
+            margin-bottom: 15px;
+        }
+
+        .expanded-content {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #4a4a4a;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .no-files-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: none;
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(139, 69, 19, 0.3);
+            border-radius: 50%;
+            border-top-color: #8b4513;
+            animation: spin 1s ease-in-out infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 18px 24px;
+            background: linear-gradient(135deg, #8b4513 0%, #a0522d 100%);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transform: translateX(150%);
+            transition: transform 0.3s;
+            z-index: 1000;
+            font-weight: 500;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success {
+            background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #f44336 0%, #ef5350 100%);
+        }
+
+        /* Page Headers */
+        .page-header {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            color: #5a3e2b;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #d9c8a9;
+            text-align: center;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .book.open-book {
+                height: auto;
+                min-height: 800px;
+            }
+
+            .book-pages {
+                flex-direction: column;
+            }
+
+            .page-left {
+                border-right: none;
+                border-bottom: 2px solid #d9c8a9;
+                padding-right: 40px;
+                padding-bottom: 30px;
+            }
+
+            .page-right {
+                border-left: none;
+                border-top: 2px solid #d9c8a9;
+                padding-left: 40px;
+                padding-top: 30px;
+            }
+
+            .book-spine {
+                display: none;
+            }
+
+            .search-book-container {
+                position: relative;
+                width: 100%;
+                margin-top: 20px;
+                margin-left: 0;
+                transform: none;
+            }
+
+            .notes-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(4, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Handwritten Notes to Text Converter</h1>
+            <p class="subtitle">Transform your handwritten notes into digital text with ease</p>
+        </header>
+
+        <div class="book-container">
+            <div class="book open-book" id="conversionBook">
+                <div class="book-spine"></div>
+                <div class="book-pages">
+                    <div class="page page-left">
+                        <h2 class="page-header">Upload Your Handwritten Notes</h2>
+                        <form id="uploadForm">
+                            <div class="form-group">
+                                <label for="studentName">Student Name</label>
+                                <input type="text" id="studentName" name="studentName" required
+                                    placeholder="Enter student name">
+                            </div>
+                            <div class="form-group">
+                                <label for="courseName">Course Name</label>
+                                <input type="text" id="courseName" name="courseName" required
+                                    placeholder="Enter course name">
+                            </div>
+                            <div class="form-group">
+                                <label for="handwrittenFile">Upload Handwritten Notes</label>
+                                <div class="file-upload">
+                                    <input type="file" id="handwrittenFile" name="handwrittenFile" accept="image/*"
+                                        required>
+                                    <label for="handwrittenFile" class="file-upload-label">
+                                        <i class="fas fa-cloud-upload-alt"></i> Choose File
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <button type="submit" class="btn" id="submitBtn">
+                                    <i class="fas fa-magic"></i> Convert to Text
+                                </button>
+                            </div>
+                        </form>
+                        <div class="spinner" id="conversionSpinner"></div>
+                    </div>
+                    <div class="page page-right">
+                        <h2 class="page-header">Converted Text</h2>
+                        <div class="text-container">
+                            <div class="converted-text" id="convertedText">
+                                texts...
+                            </div>
+                            <div class="download-container">
+                                <button class="btn btn-secondary" id="downloadBtn" style="display: none;">
+                                    <i class="fas fa-download"></i> Download Text
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-book-container">
+            <div class="book-container">
+                <div class="book closed-book" id="searchBook">
+                    <div class="search-form-on-cover">
+                        <form id="searchForm">
+                            <div class="form-group">
+                                <label for="searchName">Student Name</label>
+                                <input type="text" id="searchName" placeholder="Enter student name">
+                            </div>
+                            <div class="form-group">
+                                <label for="searchCourse">Course Name</label>
+                                <input type="text" id="searchCourse" placeholder="Enter course name">
+                            </div>
+                            <button type="submit" class="btn" id="searchBtn">
+                                <i class="fas fa-search"></i> Look
+                            </button>
+                        </form>
+                    </div>
+                    <img src="https://picsum.photos/seed/redhairboy/60/60.jpg" alt="Cartoon Boy" class="cartoon-boy">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <div id="expandedModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="expandedContent"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const uploadForm = document.getElementById('uploadForm');
+            const convertedText = document.getElementById('convertedText');
+            const conversionSpinner = document.getElementById('conversionSpinner');
+            const downloadBtn = document.getElementById('downloadBtn');
+            let currentConvertedText = '';
+
+            // 🔹 Upload & OCR
+            uploadForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                conversionSpinner.style.display = 'block';
+                convertedText.textContent = 'Processing your handwritten notes...';
+
+                fetch('/process', {
+                    method: 'POST',
+                    body: new FormData(uploadForm)
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        conversionSpinner.style.display = 'none';
+                        if (data.success) {
+                            currentConvertedText = data.content;
+                            convertedText.textContent = data.content;
+                            downloadBtn.style.display = 'inline-block';
+                            showNotification('Notes converted and saved successfully!', 'success');
+
+                            // 💡 New: Refresh results after upload if the search book is open
+                            const nameElement = document.getElementById('searchName');
+                            const courseElement = document.getElementById('searchCourse');
+                            const name = nameElement ? nameElement.value.trim() : (pendingSearch ? pendingSearch.name : '');
+                            const course = courseElement ? courseElement.value.trim() : (pendingSearch ? pendingSearch.course : '');
+
+                            if ((name || course) && isBookOpen) {
+                                pendingSearch = { name, course };
+                                performSearch(1); // Refresh results to show the new record
+                            }
+                        } else {
+                            convertedText.textContent = "Error: " + data.message;
+                            showNotification('OCR failed', 'error');
+                        }
+                    })
+                    .catch(err => {
+                        conversionSpinner.style.display = 'none';
+                        convertedText.textContent = "Error: " + err;
+                        showNotification('OCR failed', 'error');
+                    });
+            });
+
+            // 🔹 Download Converted Text
+            downloadBtn.addEventListener('click', function () {
+                const filename = `converted_text_${Date.now()}.txt`;
+                const element = document.createElement('a');
+                element.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(currentConvertedText);
+                element.download = filename;
+                element.click();
+            });
+
+            // 🔹 Search (Look) feature
+            const searchBook = document.getElementById('searchBook');
+            const searchForm = document.getElementById('searchForm');
+            const searchBookContainer = document.querySelector('.search-book-container');
+            let isBookOpen = false;
+            let currentPage = 1;
+            let totalPages = 1;
+            let pendingSearch = null;
+
+            // ✅ Main search function - fixed timing issue
+            searchForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const name = document.getElementById('searchName').value.trim();
+                const course = document.getElementById('searchCourse').value.trim();
+
+                if (!name && !course) {
+                    showNotification("Enter at least one field to search", "error");
+                    return;
+                }
+
+                // ✅ Store the search parameters ONCE before the form is removed
+                pendingSearch = { name, course };
+
+                // Open the book if it's closed, then perform search
+                if (!isBookOpen) {
+                    openSearchBook(function () {
+                        performSearch(1);
+                    });
+                } else {
+                    // Book is already open, perform search immediately, starting from page 1
+                    performSearch(1);
+                }
+            });
+
+            // 💡 Function to perform search with animation logic
+            function performSearch(page) {
+                if (!pendingSearch) return;
+
+                const name = pendingSearch.name;
+                const course = pendingSearch.course;
+
+                // Only apply animation if changing pages AND the book is open
+                if (isBookOpen && page !== currentPage) {
+                    const direction = page > currentPage ? 'next' : 'prev';
+                    applyPageTurnAnimation(direction, () => {
+                        fetchSearchResults(name, course, page);
+                    });
+                } else {
+                    // For initial load (or new search on page 1), just fetch data
+                    fetchSearchResults(name, course, page);
+                }
+            }
+
+            // 💡 Page Turn Animation Logic (ENHANCED for Real Flip)
+            function applyPageTurnAnimation(direction, callback) {
+                const leftPage = searchBook.querySelector('.page-left');
+                const rightPage = searchBook.querySelector('.page-right');
+
+                if (!leftPage || !rightPage) return callback();
+
+                let pagesToFlip = [];
+                
+                if (direction === 'next') {
+                    // When turning NEXT, we flip the entire spread (left & right) to reveal the new content.
+                    pagesToFlip.push(leftPage, rightPage);
+                } else if (direction === 'prev') {
+                    // When turning PREV, we flip the current spread back.
+                    pagesToFlip.push(leftPage, rightPage);
+                }
+
+                // 1. Apply the visual "flip" effect
+                pagesToFlip.forEach(page => {
+                    // We flip both pages. The new content will only be visible AFTER the callback.
+                    page.classList.add('page-flipping');
+                });
+
+                // 2. Wait for the majority of the transition (800ms total transition time)
+                setTimeout(() => {
+                    // 3. Perform the data fetch and DOM update (callback)
+                    callback();
+
+                    // 4. Immediately prepare for the new content fade-in by removing the flip class
+                    // We remove it with a slight delay to ensure content swap happens first.
+                    setTimeout(() => {
+                         pagesToFlip.forEach(page => {
+                            page.classList.remove('page-flipping');
+                        });
+                    }, 50); 
+                    
+                }, 800); // Must match the CSS transition duration (0.8s)
+            }
+
+
+            // ✅ Function to fetch search results
+            function fetchSearchResults(name, course, page) {
+                fetch('/search', {
+                    method: 'POST',
+                    body: new URLSearchParams({
+                        studentName: name,
+                        courseName: course,
+                        page: page
+                    }),
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            currentPage = data.page;
+                            totalPages = data.total_pages;
+                            displayBookPage(data);
+                            showNotification('Results loaded successfully', 'success');
+                        } else {
+                            currentPage = 1;
+                            totalPages = 1;
+                            displayBookPage(data); // Display empty/error message
+                            showNotification(data.message, 'error');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Search error:', err);
+                        showNotification('Error: ' + err.message, 'error');
+                    });
+            }
+
+            // 🔹 Functions to open/close book with callback
+            function openSearchBook(callback) {
+                searchBook.classList.remove('closed-book');
+                searchBook.classList.add('open-book', 'opening');
+                searchBookContainer.style.width = '100%';
+
+                const spine = document.createElement('div');
+                spine.className = 'book-spine';
+                searchBook.appendChild(spine);
+
+                const pages = document.createElement('div');
+                pages.className = 'book-pages';
+                pages.innerHTML = `
+                <div class="page page-left">
+                    <h2 class="page-header">Search Results</h2>
+                    <div class="notes-container">
+                        <div id="notesContent"></div>
+                    </div>
+                </div>
+                <div class="page page-right">
+                    <h2 class="page-header">More Results</h2>
+                    <div class="notes-container">
+                        <div id="notesContentRight"></div>
+                    </div>
+                </div>
+            `;
+                searchBook.appendChild(pages);
+
+                // Add pagination controls immediately
+                addPaginationControls(searchBook.querySelector('.page-left'), searchBook.querySelector('.page-right'));
+
+                const form = searchBook.querySelector('.search-form-on-cover');
+                const cartoon = searchBook.querySelector('.cartoon-boy');
+                // This is the removal that caused the TypeError. 
+                // The fix ensures we don't try to read the inputs after this point.
+                if (form) form.remove();
+                if (cartoon) cartoon.remove();
+
+                isBookOpen = true;
+
+                // Wait for the animation to complete before executing callback
+                setTimeout(() => {
+                    if (callback) callback();
+                }, 900); // Slightly longer than the animation duration
+            }
+
+            // 💡 Helper to create initial pagination controls
+            function addPaginationControls(leftPage, rightPage) {
+                // Remove existing ones first (in case of re-open logic changes)
+                leftPage.querySelector('.page-btn.prev')?.remove();
+                rightPage.querySelector('.page-btn.next')?.remove();
+                leftPage.querySelector('.page-indicator')?.remove();
+
+                const prevBtn = document.createElement('button');
+                prevBtn.className = 'page-btn prev';
+                prevBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+                leftPage.appendChild(prevBtn);
+
+                const nextBtn = document.createElement('button');
+                nextBtn.className = 'page-btn next';
+                nextBtn.innerHTML = '<i class="fas fa-arrow-right"></i>';
+                rightPage.appendChild(nextBtn);
+
+                const indicator = document.createElement('span');
+                indicator.className = 'page-indicator';
+                leftPage.appendChild(indicator);
+            }
+
+            // 💡 Helper to setup pagination listeners and state 
+            function setupPaginationListeners(data) {
+                const prevBtn = searchBook.querySelector('.page-btn.prev');
+                const nextBtn = searchBook.querySelector('.page-btn.next');
+                const indicator = searchBook.querySelector('.page-indicator');
+
+                if (prevBtn) {
+                    // Calls performSearch, which correctly uses the stored 'pendingSearch' parameters
+                    prevBtn.onclick = () => performSearch(data.page - 1);
+                    prevBtn.disabled = data.page <= 1;
+                }
+
+                if (nextBtn) {
+                    // Calls performSearch, which correctly uses the stored 'pendingSearch' parameters
+                    nextBtn.onclick = () => performSearch(data.page + 1);
+                    nextBtn.disabled = data.page >= data.total_pages;
+                }
+
+                if (indicator) {
+                    indicator.textContent = `Page ${data.page} of ${data.total_pages}`;
+                }
+            }
+
+            // 🔹 Notifications
+            function showNotification(message, type = 'info') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = 'notification show ' + type;
+                setTimeout(() => notification.classList.remove('show'), 3000);
+            }
+
+            // 🔹 File input label
+            const fileInput = document.getElementById('handwrittenFile');
+            const fileLabel = document.querySelector('.file-upload-label');
+            fileInput.addEventListener('change', function () {
+                if (this.files.length > 0) {
+                    fileLabel.innerHTML = `<i class="fas fa-file-image"></i> ${this.files[0].name}`;
+                } else {
+                    fileLabel.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Choose File';
+                }
+            });
+
+            // ✅ Function to wait for DOM elements
+            function waitForElement(selector, callback, maxAttempts = 10) {
+                let attempts = 0;
+                const interval = setInterval(() => {
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        clearInterval(interval);
+                        callback(element);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(interval);
+                        console.error(`Element ${selector} not found after ${maxAttempts} attempts`);
+                        showNotification('Error displaying results. Please try again.', 'error');
+                    }
+                    attempts++;
+                }, 100);
+            }
+
+            // ✅ Display results on both left and right pages
+            function displayBookPage(data) {
+                waitForElement('#notesContent', function (notesContent) {
+                    waitForElement('#notesContentRight', function (notesContentRight) {
+                        notesContent.innerHTML = '';
+                        notesContentRight.innerHTML = '';
+
+                        // Update button state and indicator
+                        setupPaginationListeners(data);
+
+                        if (!data.records || data.records.length === 0) {
+                            const noFilesMessage = `
+                            <div class="no-files-message" style="height: 100%;">
+                                <i class="fas fa-folder-open no-files-icon"></i>
+                                <p>${data.message || 'No records found.'}</p>
+                            </div>
+                        `;
+                            notesContent.innerHTML = noFilesMessage;
+                            notesContentRight.innerHTML = noFilesMessage;
+                            return;
+                        }
+
+                        // Distribute records evenly between left and right pages
+                        const totalRecords = data.records.length;
+                        const halfRecords = Math.ceil(totalRecords / 2);
+                        const leftRecords = data.records.slice(0, halfRecords);
+                        const rightRecords = data.records.slice(halfRecords);
+
+                        const leftGrid = document.createElement('div');
+                        leftGrid.className = 'notes-grid';
+
+                        const rightGrid = document.createElement('div');
+                        rightGrid.className = 'notes-grid';
+
+                        // Display left page records
+                        leftRecords.forEach(r => {
+                            const card = createNoteCard(r);
+                            leftGrid.appendChild(card);
+                        });
+
+                        // Display right page records
+                        rightRecords.forEach(r => {
+                            const card = createNoteCard(r);
+                            rightGrid.appendChild(card);
+                        });
+
+                        notesContent.appendChild(leftGrid);
+                        notesContentRight.appendChild(rightGrid);
+                    });
+                });
+            }
+
+            // 💡 Helper to create a single note card
+            function createNoteCard(r) {
+                const card = document.createElement('div');
+                card.className = 'note-card';
+                card.style.cursor = 'pointer';
+                card.innerHTML = `
+                 <div class="note-header">
+                     <div class="note-date-time">${r.date} ${r.time}</div>
+                     <div class="note-name-course">${r.student_name} - ${r.course_name}</div>
+                 </div>
+                 <img src="data:image/jpeg;base64,${r.image}" 
+                      style="width:100%;height:70px;object-fit:cover;border:1px solid #ccc;margin-bottom:5px;">
+                 <div class="note-content" style="font-size:12px;line-height:1.3;max-height:50px;overflow:auto;">
+                     ${r.content}
+                 </div>
+             `;
+                card.onclick = () => showExpandedView(r);
+                return card;
+            }
+
+            // ✅ Modal functionality for expanded view
+            function showExpandedView(record) {
+                const modal = document.getElementById('expandedModal');
+                const content = document.getElementById('expandedContent');
+
+                content.innerHTML = `
+                <div class="expanded-card">
+                    <div class="note-header">
+                        <div class="note-date-time">${record.date} ${record.time}</div>
+                        <div class="note-name-course">${record.student_name} - ${record.course_name}</div>
+                    </div>
+                    <img src="data:image/jpeg;base64,${record.image}" class="expanded-image">
+                    <div class="expanded-content">${record.content}</div>
+                </div>
+            `;
+
+                modal.style.display = 'block';
+            }
+
+            // Close modal when clicking the X
+            document.querySelector('.close').onclick = function () {
+                document.getElementById('expandedModal').style.display = 'none';
+            }
+
+            // Close modal when clicking outside of it
+            window.onclick = function (event) {
+                const modal = document.getElementById('expandedModal');
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
