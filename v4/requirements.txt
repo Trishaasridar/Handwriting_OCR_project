@@ -1,0 +1,8 @@
+paddleocr
+paddlepaddle
+flask
+python-dotenv
+opencv-contrib-python
+Pillow
+numpy
+werkzeug

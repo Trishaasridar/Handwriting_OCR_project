@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwritten Notes to Text Converter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f0e8;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            background-image: url('https://picsum.photos/seed/woodentable/1920/1080.jpg');
+            background-size: cover;
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        header { text-align: center; margin-bottom: 30px; }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            color: #5a3e2b;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+        }
+
+        .subtitle { font-style: italic; color: #7d6d5d; }
+
+        /* ── Book styles ─────────────────────────────────────────── */
+        .book-container { perspective: 2000px; margin-bottom: 50px; }
+
+        .book { width: 100%; position: relative; transform-style: preserve-3d; }
+
+        .book.open-book {
+            height: 820px;
+            background: linear-gradient(to right,
+                #f8f5e9 0%, #f8f5e9 48%,
+                #d9c8a9 48%, #d9c8a9 52%,
+                #f8f5e9 52%, #f8f5e9 100%);
+            border-radius: 0 10px 10px 0;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3), inset 0 0 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .book.open-book::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 48%; width: 4%; height: 100%;
+            background: linear-gradient(to right,
+                rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%);
+            z-index: 10;
+        }
+
+        .book-pages { display: flex; height: 100%; }
+
+        .page {
+            flex: 1;
+            padding: 35px 40px;
+            position: relative;
+            background-image: url('https://picsum.photos/seed/papertexture/1200/600.jpg');
+            background-size: cover;
+            background-blend-mode: overlay;
+            background-color: rgba(248,245,233,0.95);
+            overflow: hidden;
+        }
+
+        .page::before {
+            content: '';
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: repeating-linear-gradient(0deg,
+                transparent, transparent 28px,
+                rgba(214,199,169,0.3) 28px, rgba(214,199,169,0.3) 29px);
+            pointer-events: none;
+        }
+
+        .page-left  { border-right: 2px solid #d9c8a9; padding-right: 50px; }
+        .page-right { border-left:  2px solid #d9c8a9; padding-left:  50px; display: flex; flex-direction: column; }
+
+        .book-spine {
+            position: absolute; top: 0; left: 48%; width: 4%; height: 100%;
+            background: linear-gradient(to right, #8b4513 0%, #a0522d 50%, #8b4513 100%);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 10px rgba(0,0,0,0.3);
+            z-index: 5;
+        }
+
+        /* ── Form elements ───────────────────────────────────────── */
+        .page-header {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px; color: #5a3e2b;
+            margin-bottom: 18px; padding-bottom: 12px;
+            border-bottom: 2px solid #d9c8a9;
+            text-align: center;
+        }
+
+        .form-group { margin-bottom: 16px; position: relative; z-index: 1; }
+
+        label { display: block; margin-bottom: 6px; font-weight: 500; color: #5a3e2b; font-size: 14px; }
+
+        input[type="text"] {
+            width: 100%; padding: 10px;
+            border: 2px solid #d9c8a9; border-radius: 6px;
+            font-family: 'Roboto', sans-serif; font-size: 14px;
+            background-color: rgba(255,255,255,0.8); transition: all 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none; border-color: #8b4513;
+            box-shadow: 0 0 8px rgba(139,69,19,0.3);
+            background-color: rgba(255,255,255,0.95);
+        }
+
+        /* ── File drop zone ──────────────────────────────────────── */
+        .file-drop-zone {
+            position: relative;
+            border: 2px dashed #d9c8a9;
+            border-radius: 8px;
+            padding: 18px;
+            text-align: center;
+            background-color: rgba(255,255,255,0.5);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .file-drop-zone:hover,
+        .file-drop-zone.drag-over {
+            border-color: #8b4513;
+            background-color: rgba(139,69,19,0.05);
+        }
+
+        .file-drop-zone input[type="file"] {
+            position: absolute; opacity: 0;
+            width: 100%; height: 100%; top: 0; left: 0; cursor: pointer;
+        }
+
+        .drop-icon  { font-size: 28px; color: #8b4513; margin-bottom: 6px; }
+        .drop-text  { color: #5a3e2b; font-size: 14px; font-weight: 500; }
+        .drop-hint  { color: #8b7355; font-size: 11px; margin-top: 3px; }
+
+        /* ── Selected file count badge ───────────────────────────── */
+        .file-count-row {
+            display: flex; align-items: center; gap: 8px;
+            margin-top: 8px; font-size: 13px; color: #5a3e2b;
+        }
+
+        .file-count-badge {
+            background: rgba(139,69,19,0.12);
+            border: 1px solid rgba(139,69,19,0.3);
+            border-radius: 12px;
+            padding: 2px 10px;
+            font-weight: 600; font-size: 13px; color: #5a3e2b;
+        }
+
+        .file-scroll {
+            max-height: 70px; overflow-y: auto;
+            margin-top: 4px;
+        }
+
+        .file-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: rgba(139,69,19,0.08);
+            border: 1px solid rgba(139,69,19,0.2);
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 11px; color: #5a3e2b;
+            margin: 2px;
+        }
+
+        /* ── Buttons ─────────────────────────────────────────────── */
+        .btn {
+            display: inline-block; padding: 10px 22px;
+            background: linear-gradient(135deg, #8b4513 0%, #a0522d 100%);
+            color: white; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 14px; font-weight: 500;
+            transition: all 0.3s; margin-right: 8px;
+        }
+
+        .btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139,69,19,0.4); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .btn-secondary { background: linear-gradient(135deg, #5a3e2b 0%, #7d5d44 100%); }
+        .btn-sm { padding: 5px 12px; font-size: 11px; margin: 0; }
+
+        /* ── Right page results ──────────────────────────────────── */
+        .results-wrapper {
+            flex: 1; display: flex; flex-direction: column;
+            overflow: hidden; position: relative; z-index: 1;
+        }
+
+        .results-placeholder {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            color: #8b7355; text-align: center; opacity: 0.7;
+        }
+
+        .results-placeholder i { font-size: 48px; margin-bottom: 12px; }
+
+        /* ── Live progress panel ─────────────────────────────────── */
+        .progress-panel {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .progress-panel.active { display: flex; }
+
+        .progress-header {
+            font-family: 'Playfair Display', serif;
+            font-size: 16px; color: #5a3e2b;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .spinner-sm {
+            width: 18px; height: 18px;
+            border: 3px solid rgba(139,69,19,0.25);
+            border-top-color: #8b4513;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .progress-track {
+            background: rgba(217,200,169,0.4);
+            border-radius: 6px; height: 14px; overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%; width: 0;
+            background: linear-gradient(90deg, #8b4513, #c46b2a);
+            border-radius: 6px;
+            transition: width 0.4s ease;
+        }
+
+        .progress-stats {
+            display: flex; justify-content: space-between;
+            font-size: 12px; color: #7d6d5d;
+        }
+
+        .progress-current {
+            font-size: 12px; color: #5a3e2b;
+            font-style: italic;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* live result stream (appearing cards during processing) */
+        .live-results { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+
+        .live-card {
+            background: rgba(255,255,255,0.6);
+            border: 1px solid rgba(217,200,169,0.6);
+            border-radius: 6px; padding: 7px 10px;
+            font-size: 12px; color: #4a4a4a;
+            display: flex; align-items: flex-start; gap: 8px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .live-card.error { border-color: #ef9a9a; background: rgba(255,235,238,0.5); }
+
+        .live-card-icon { margin-top: 2px; flex-shrink: 0; color: #8b4513; }
+        .live-card-icon.err { color: #c62828; }
+        .live-card-body { flex: 1; min-width: 0; }
+        .live-card-name { font-weight: 600; color: #5a3e2b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .live-card-text { color: #666; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        @keyframes spin   { to { transform: rotate(360deg); } }
+
+        /* ── Batch summary + full results ────────────────────────── */
+        .batch-summary {
+            background: rgba(139,69,19,0.08);
+            border: 1px solid rgba(139,69,19,0.2);
+            border-radius: 8px; padding: 8px 12px;
+            margin-bottom: 8px; font-size: 13px; color: #5a3e2b;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0;
+        }
+
+        .batch-badges { display: flex; gap: 6px; }
+
+        .badge { padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .badge-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+        .badge-error   { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+
+        .results-scroll { flex: 1; overflow-y: auto; padding-right: 4px; }
+        .results-scroll::-webkit-scrollbar { width: 6px; }
+        .results-scroll::-webkit-scrollbar-track { background: rgba(217,200,169,0.3); border-radius: 3px; }
+        .results-scroll::-webkit-scrollbar-thumb { background: #8b4513; border-radius: 3px; }
+
+        .result-card {
+            background: rgba(255,255,255,0.65);
+            border: 1px solid rgba(217,200,169,0.6);
+            border-radius: 8px; padding: 10px;
+            margin-bottom: 8px; transition: box-shadow 0.2s;
+        }
+
+        .result-card:hover { box-shadow: 0 3px 12px rgba(139,69,19,0.15); }
+
+        .result-card-header {
+            display: flex; align-items: center;
+            justify-content: space-between; margin-bottom: 6px;
+        }
+
+        .result-filename {
+            font-weight: 600; font-size: 12px; color: #5a3e2b;
+            display: flex; align-items: center; gap: 5px;
+            max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+
+        .result-meta  { font-size: 11px; color: #8b7355; }
+
+        .result-text {
+            font-family: 'Georgia', serif; font-size: 12px;
+            line-height: 1.5; color: #333;
+            background: rgba(255,255,255,0.5);
+            border-radius: 4px; padding: 6px 8px;
+            white-space: pre-wrap; max-height: 80px; overflow-y: auto;
+            border: 1px solid rgba(217,200,169,0.4);
+        }
+
+        .result-actions { margin-top: 6px; display: flex; gap: 5px; }
+
+        .download-all-container { margin-top: 8px; text-align: center; flex-shrink: 0; }
+
+        /* ── Search book (closed) ────────────────────────────────── */
+        .search-book-container {
+            position: relative; width: 50%;
+            margin: 0 auto; margin-top: 20px; z-index: 2;
+        }
+
+        .book.closed-book {
+            height: 800px;
+            background-color: #8b4513;
+            border-radius: 5px 15px 15px 5px;
+            box-shadow: 5px 5px 20px rgba(0,0,0,0.3), inset 0 0 30px rgba(0,0,0,0.2);
+            overflow: hidden; cursor: pointer;
+            background-image: url('https://picsum.photos/seed/leathercover/1200/600.jpg');
+            background-size: cover; transition: all 0.8s ease;
+        }
+
+        .book.closed-book::before {
+            content: ''; position: absolute; inset: 0;
+            background-color: rgba(139,69,19,0.7); z-index: 1;
+        }
+
+        .search-form-on-cover {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            width: 80%; max-width: 280px; z-index: 3; padding: 20px;
+        }
+
+        .search-form-on-cover .form-group { margin-bottom: 12px; }
+
+        .search-form-on-cover label {
+            color: #f5f0e8; font-weight: 600; margin-bottom: 6px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); font-size: 13px;
+        }
+
+        .search-form-on-cover input[type="text"] {
+            background-color: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            color: #f5f0e8; padding: 9px; font-size: 13px;
+        }
+
+        .search-form-on-cover input::placeholder { color: rgba(245,240,232,0.7); }
+
+        .search-form-on-cover .btn {
+            width: 100%; margin-top: 8px;
+            background: linear-gradient(135deg, rgba(139,69,19,0.7) 0%, rgba(160,82,45,0.7) 100%);
+            padding: 9px; font-size: 13px; margin-right: 0;
+        }
+
+        .cartoon-boy {
+            position: absolute; bottom: 15px; right: 15px;
+            width: 60px; height: 60px; z-index: 2;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+        }
+
+        /* ── Search note cards ───────────────────────────────────── */
+        .notes-container { width: 100%; height: 100%; display: flex; flex-direction: column; }
+
+        .notes-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 12px;
+            height: calc(100% - 60px);
+        }
+
+        .note-card {
+            background: #fff8e7; border: 2px solid #d4a574;
+            border-radius: 8px; padding: 10px;
+            position: relative; box-shadow: 3px 3px 8px rgba(0,0,0,0.1);
+            transform: rotate(-1deg); transition: all 0.3s;
+            display: flex; flex-direction: column; cursor: pointer;
+        }
+
+        .note-card:nth-child(even) { transform: rotate(1deg); }
+        .note-card:hover { transform: rotate(0) scale(1.05); box-shadow: 5px 5px 15px rgba(0,0,0,0.2); z-index: 10; }
+
+        .note-card::before {
+            content: ''; position: absolute; top: -5px; left: 20%; width: 60%; height: 10px;
+            background: rgba(255,255,200,0.5); border: 1px solid #d4a574; border-radius: 2px;
+        }
+
+        .note-header {
+            display: flex; justify-content: space-between;
+            margin-bottom: 6px; font-size: 10px;
+            border-bottom: 1px dashed #d4a574; padding-bottom: 3px;
+        }
+
+        .note-date-time  { color: #8b7355; font-weight: 500; }
+        .note-name-course { color: #5a3e2b; font-weight: 600; text-align: right; }
+        .note-filename   { color: #8b4513; font-size: 10px; font-style: italic; margin-bottom: 3px; }
+
+        .note-content {
+            flex: 1; font-size: 11px; line-height: 1.3; color: #4a4a4a;
+            overflow-y: auto; font-family: 'Courier New', monospace; max-height: 40px;
+        }
+
+        .page-btn {
+            background: #8b4513; color: white; border: none;
+            border-radius: 50%; width: 34px; height: 34px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s; font-size: 14px;
+            position: absolute;
+        }
+
+        .page-btn.prev { bottom: 14px; left: 14px; }
+        .page-btn.next { bottom: 14px; right: 14px; }
+        .page-btn:hover   { background: #a0522d; transform: scale(1.1); }
+        .page-btn:disabled { background: #ccc; cursor: not-allowed; transform: scale(1); }
+
+        .page-indicator {
+            color: #5a3e2b; font-weight: 600; font-size: 12px;
+            position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+        }
+
+        .no-files-message {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100%; color: #8b7355; font-size: 18px; text-align: center;
+        }
+
+        .no-files-icon { font-size: 48px; margin-bottom: 14px; opacity: 0.5; }
+
+        /* ── Modal ───────────────────────────────────────────────── */
+        .modal {
+            display: none; position: fixed; z-index: 1000;
+            inset: 0; background: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background: #f8f5e9; margin: 5% auto; padding: 22px;
+            border: 2px solid #8b4513; border-radius: 10px;
+            width: 80%; max-width: 800px; max-height: 80vh;
+            overflow-y: auto; position: relative;
+        }
+
+        .close {
+            color: #8b4513; float: right; font-size: 26px;
+            font-weight: bold; cursor: pointer;
+            position: absolute; top: 10px; right: 15px;
+        }
+
+        .close:hover { color: #a0522d; }
+
+        .expanded-card { background: #fff8e7; border: 2px solid #d4a574; border-radius: 8px; padding: 18px; }
+        .expanded-image { width: 100%; max-height: 400px; object-fit: contain; border: 1px solid #ccc; margin-bottom: 12px; }
+        .expanded-content { font-size: 14px; line-height: 1.6; color: #4a4a4a; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+
+        /* ── Notification ────────────────────────────────────────── */
+        .notification {
+            position: fixed; top: 20px; right: 20px;
+            padding: 14px 20px;
+            background: linear-gradient(135deg, #8b4513 0%, #a0522d 100%);
+            color: white; border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            transform: translateX(150%); transition: transform 0.3s;
+            z-index: 2000; font-weight: 500; max-width: 320px;
+        }
+
+        .notification.show    { transform: translateX(0); }
+        .notification.success { background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%); }
+        .notification.error   { background: linear-gradient(135deg, #f44336 0%, #ef5350 100%); }
+        .notification.info    { background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%); }
+
+        @media (max-width: 768px) {
+            .book.open-book { height: auto; min-height: 820px; }
+            .book-pages { flex-direction: column; }
+            .page-left  { border-right: none; border-bottom: 2px solid #d9c8a9; }
+            .page-right { border-left: none;  border-top:    2px solid #d9c8a9; }
+            .book-spine { display: none; }
+            .search-book-container { width: 100%; }
+            .notes-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Handwritten Notes to Text Converter</h1>
+        <p class="subtitle">Upload up to 50 images at once — each stored &amp; searchable separately</p>
+    </header>
+
+    <!-- ── Main conversion book ─────────────────────────────────── -->
+    <div class="book-container">
+        <div class="book open-book">
+            <div class="book-spine"></div>
+            <div class="book-pages">
+
+                <!-- LEFT PAGE — upload form -->
+                <div class="page page-left">
+                    <h2 class="page-header">Upload Handwritten Notes</h2>
+
+                    <form id="uploadForm">
+                        <div class="form-group">
+                            <label for="studentName"><i class="fas fa-user"></i> Student Name</label>
+                            <input type="text" id="studentName" name="studentName" required placeholder="Enter student name">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="courseName"><i class="fas fa-book"></i> Course Name</label>
+                            <input type="text" id="courseName" name="courseName" required placeholder="Enter course name">
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-images"></i> Upload Images</label>
+                            <div class="file-drop-zone" id="dropZone">
+                                <input type="file" id="handwrittenFile" name="handwrittenFile"
+                                       accept="image/*" multiple>
+                                <div class="drop-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                                <div class="drop-text">Click to browse or drag &amp; drop</div>
+                                <div class="drop-hint">PNG JPG JPEG BMP TIFF WebP · max 20 MB each · up to 50 images</div>
+                            </div>
+
+                            <div class="file-count-row" id="fileCountRow" style="display:none">
+                                <span class="file-count-badge" id="fileCountBadge">0</span>
+                                <span>files selected</span>
+                            </div>
+                            <div class="file-scroll" id="fileList"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn" id="submitBtn">
+                                <i class="fas fa-magic"></i> Convert to Text
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="cancelBtn" style="display:none">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- RIGHT PAGE — live progress + results -->
+                <div class="page page-right">
+                    <h2 class="page-header">Converted Text</h2>
+
+                    <!-- Live progress panel -->
+                    <div class="progress-panel" id="progressPanel">
+                        <div class="progress-header">
+                            <div class="spinner-sm" id="progressSpinner"></div>
+                            <span id="progressTitle">Processing…</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="progress-stats">
+                            <span id="progressCount">0 / 0 done</span>
+                            <span id="progressEta"></span>
+                        </div>
+                        <div class="progress-current" id="progressCurrent"></div>
+                        <div class="live-results" id="liveResults"></div>
+                    </div>
+
+                    <div class="results-wrapper" id="resultsWrapper">
+                        <div class="results-placeholder" id="resultsPlaceholder">
+                            <i class="fas fa-file-image"></i>
+                            <p>Converted text will appear here</p>
+                            <p style="font-size:12px;margin-top:6px;">Each image shows as a separate result</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- .book-pages -->
+        </div><!-- .book -->
+    </div><!-- .book-container -->
+
+    <!-- ── Search book ───────────────────────────────────────────── -->
+    <div class="search-book-container">
+        <div class="book-container">
+            <div class="book closed-book" id="searchBook">
+                <div class="search-form-on-cover">
+                    <form id="searchForm">
+                        <div class="form-group">
+                            <label for="searchName">Student Name</label>
+                            <input type="text" id="searchName" placeholder="Enter student name">
+                        </div>
+                        <div class="form-group">
+                            <label for="searchCourse">Course Name</label>
+                            <input type="text" id="searchCourse" placeholder="Enter course name">
+                        </div>
+                        <button type="submit" class="btn">
+                            <i class="fas fa-search"></i> Look
+                        </button>
+                    </form>
+                </div>
+                <img src="https://picsum.photos/seed/redhairboy/60/60.jpg" alt="" class="cartoon-boy">
+            </div>
+        </div>
+    </div>
+</div><!-- .container -->
+
+<!-- Notification -->
+<div class="notification" id="notification"></div>
+
+<!-- Modal -->
+<div id="expandedModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="expandedContent"></div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    /* ── Helpers ──────────────────────────────────────────────── */
+    function showNotification(msg, type = 'info') {
+        const el = document.getElementById('notification');
+        el.textContent = msg;
+        el.className = 'notification show ' + type;
+        setTimeout(() => el.classList.remove('show'), 5000);
+    }
+
+    /* ── File input & drag-drop ───────────────────────────────── */
+    const fileInput    = document.getElementById('handwrittenFile');
+    const dropZone     = document.getElementById('dropZone');
+    const fileList     = document.getElementById('fileList');
+    const fileCountRow = document.getElementById('fileCountRow');
+    const fileCountBadge = document.getElementById('fileCountBadge');
+
+    function renderFileChips(files) {
+        const count = files.length;
+        if (count === 0) { fileCountRow.style.display = 'none'; fileList.innerHTML = ''; return; }
+        fileCountRow.style.display = 'flex';
+        fileCountBadge.textContent = count;
+        fileList.innerHTML = '';
+        Array.from(files).slice(0, 30).forEach(f => {
+            const chip = document.createElement('span');
+            chip.className = 'file-chip';
+            chip.innerHTML = `<i class="fas fa-file-image"></i>${f.name}`;
+            fileList.appendChild(chip);
+        });
+        if (count > 30) {
+            const more = document.createElement('span');
+            more.className = 'file-chip';
+            more.textContent = `+${count - 30} more`;
+            fileList.appendChild(more);
+        }
+    }
+
+    fileInput.addEventListener('change', () => renderFileChips(fileInput.files));
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const dt = new DataTransfer();
+        Array.from(e.dataTransfer.files).forEach(f => dt.items.add(f));
+        fileInput.files = dt.files;
+        renderFileChips(fileInput.files);
+    });
+
+    /* ── Upload form & job polling ────────────────────────────── */
+    const uploadForm     = document.getElementById('uploadForm');
+    const submitBtn      = document.getElementById('submitBtn');
+    const cancelBtn      = document.getElementById('cancelBtn');
+    const progressPanel  = document.getElementById('progressPanel');
+    const progressSpinner= document.getElementById('progressSpinner');
+    const progressTitle  = document.getElementById('progressTitle');
+    const progressFill   = document.getElementById('progressFill');
+    const progressCount  = document.getElementById('progressCount');
+    const progressEta    = document.getElementById('progressEta');
+    const progressCurrent= document.getElementById('progressCurrent');
+    const liveResults    = document.getElementById('liveResults');
+    const resultsWrapper = document.getElementById('resultsWrapper');
+
+    let pollTimer = null;
+    let seenResultCount = 0;
+
+    function startPolling(jobId, totalFiles) {
+        seenResultCount = 0;
+        liveResults.innerHTML = '';
+        progressPanel.classList.add('active');
+        progressTitle.textContent = `Processing 0 of ${totalFiles} images…`;
+        progressFill.style.width = '0%';
+        progressCount.textContent = `0 / ${totalFiles} done`;
+        progressEta.textContent = '';
+        progressCurrent.textContent = '';
+
+        // Poll every 1.5s
+        pollTimer = setInterval(() => pollJob(jobId, totalFiles), 1500);
+        pollJob(jobId, totalFiles);
+    }
+
+    function stopPolling() {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    }
+
+    async function pollJob(jobId, totalFiles) {
+        try {
+            const res  = await fetch(`/api/job/${jobId}`);
+            const data = await res.json();
+            if (!data.success) return;
+
+            const done = data.done;
+            const pct  = totalFiles > 0 ? Math.round(done / totalFiles * 100) : 0;
+
+            progressFill.style.width  = pct + '%';
+            progressCount.textContent = `${done} / ${totalFiles} done`;
+            progressTitle.textContent = data.status === 'done'
+                ? `Done — ${data.results.length} converted!`
+                : `Processing ${done} of ${totalFiles} images…`;
+
+            if (data.current_file && data.status !== 'done') {
+                progressCurrent.textContent = `Current: ${data.current_file}`;
+            }
+
+            // ETA estimation
+            if (done > 0 && data.status !== 'done') {
+                const elapsed  = data.elapsed || 0;
+                const rate     = done / elapsed;
+                const remaining = (totalFiles - done) / rate;
+                progressEta.textContent = `~${Math.ceil(remaining)}s left`;
+            }
+
+            // Append newly completed result cards
+            const newResults = data.results.slice(seenResultCount);
+            newResults.forEach(r => appendLiveCard(r, false));
+            const newErrors  = data.errors.slice(seenResultCount - (data.results.length - newResults.length));
+            // simpler: just track by total seen
+            seenResultCount = data.results.length;
+
+            if (data.status === 'done') {
+                stopPolling();
+                progressSpinner.style.display = 'none';
+                finishResults(data);
+            }
+        } catch (e) {
+            console.error('Poll error:', e);
+        }
+    }
+
+    function appendLiveCard(r, isError) {
+        const card = document.createElement('div');
+        card.className = 'live-card' + (isError ? ' error' : '');
+        const conf = r.confidence_score != null ? (r.confidence_score * 100).toFixed(0) + '%' : '';
+        card.innerHTML = `
+            <i class="fas ${isError ? 'fa-exclamation-circle' : 'fa-check-circle'} live-card-icon ${isError ? 'err' : ''}"></i>
+            <div class="live-card-body">
+                <div class="live-card-name">${r.filename}</div>
+                <div class="live-card-text">${isError ? r.error : ((r.extracted_text || '').slice(0,60) + (r.extracted_text?.length > 60 ? '…' : ''))}</div>
+            </div>
+            ${conf ? `<span style="font-size:11px;color:#8b7355;flex-shrink:0">${conf}</span>` : ''}`;
+        liveResults.appendChild(card);
+        liveResults.scrollTop = liveResults.scrollHeight;
+    }
+
+    function finishResults(data) {
+        submitBtn.disabled = false;
+        cancelBtn.style.display = 'none';
+        progressSpinner.style.display = '';
+        // Hide progress panel, show full results
+        progressPanel.classList.remove('active');
+        resultsWrapper.innerHTML = '';
+
+        if (!data.results || data.results.length === 0) {
+            resultsWrapper.innerHTML = `<div class="results-placeholder"><i class="fas fa-exclamation-triangle"></i><p>All images failed to process.</p></div>`;
+            showNotification('All images failed. Check the errors above.', 'error');
+            return;
+        }
+
+        // Summary bar
+        const summary = document.createElement('div');
+        summary.className = 'batch-summary';
+        summary.innerHTML = `
+            <span><i class="fas fa-layer-group"></i> ${data.student_name} — ${data.course_name}
+                · ${data.elapsed_total}s</span>
+            <div class="batch-badges">
+                <span class="badge badge-success">${data.results.length} saved</span>
+                ${data.errors.length > 0 ? `<span class="badge badge-error">${data.errors.length} failed</span>` : ''}
+            </div>`;
+        resultsWrapper.appendChild(summary);
+
+        const scroll = document.createElement('div');
+        scroll.className = 'results-scroll';
+
+        data.results.forEach(r => {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            const conf = r.confidence_score != null ? (r.confidence_score * 100).toFixed(1) + '%' : 'N/A';
+            card.innerHTML = `
+                <div class="result-card-header">
+                    <div class="result-filename">
+                        <i class="fas fa-file-image"></i>
+                        <span title="${r.filename}">${r.filename}</span>
+                    </div>
+                    <div class="result-meta">Conf: ${conf} · ${r.processing_time}s · ${r.word_count}w</div>
+                </div>
+                <div class="result-text">${r.extracted_text || '(no text detected)'}</div>
+                <div class="result-actions">
+                    <button class="btn btn-secondary btn-sm"
+                        onclick="downloadSingle('${escAttr(r.filename)}','${escAttr(r.extracted_text)}')">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                </div>`;
+            scroll.appendChild(card);
+        });
+
+        data.errors.forEach(err => {
+            const card = document.createElement('div');
+            card.className = 'result-card';
+            card.style.borderColor = '#ef9a9a';
+            card.innerHTML = `
+                <div class="result-card-header">
+                    <div class="result-filename"><i class="fas fa-exclamation-triangle" style="color:#c62828"></i> ${err.filename}</div>
+                    <span class="badge badge-error">Failed</span>
+                </div>
+                <div class="result-text" style="color:#c62828;">${err.error}</div>`;
+            scroll.appendChild(card);
+        });
+
+        resultsWrapper.appendChild(scroll);
+
+        if (data.results.length > 1) {
+            const dlAll = document.createElement('div');
+            dlAll.className = 'download-all-container';
+            dlAll.innerHTML = `<button class="btn btn-secondary" id="downloadAllBtn">
+                <i class="fas fa-download"></i> Download All Text
+            </button>`;
+            resultsWrapper.appendChild(dlAll);
+            document.getElementById('downloadAllBtn').addEventListener('click', () => {
+                const combined = data.results.map(r =>
+                    `=== ${r.filename} ===\n${r.extracted_text}\n`
+                ).join('\n');
+                downloadText(combined, `batch_${data.batch_id.slice(0,8)}.txt`);
+            });
+        }
+
+        showNotification(
+            `${data.results.length} of ${data.results.length + data.errors.length} image(s) converted!`,
+            data.errors.length > 0 ? 'info' : 'success'
+        );
+    }
+
+    uploadForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const files = fileInput.files;
+        if (!files.length) { showNotification('Please select at least one image.', 'error'); return; }
+        if (files.length > 50) { showNotification('Maximum 50 images per upload.', 'error'); return; }
+
+        submitBtn.disabled = true;
+        cancelBtn.style.display = 'inline-block';
+        progressPanel.classList.add('active');
+        resultsWrapper.innerHTML = '';
+
+        try {
+            const formData = new FormData(uploadForm);
+            const res      = await fetch('/api/process', { method: 'POST', body: formData });
+            const data     = await res.json();
+
+            if (!data.success) {
+                submitBtn.disabled = false;
+                cancelBtn.style.display = 'none';
+                progressPanel.classList.remove('active');
+                const msg = res.status === 413
+                    ? data.message || 'Files are too large. Try fewer or smaller images.'
+                    : data.message || 'Upload failed.';
+                showNotification(msg, 'error');
+                return;
+            }
+
+            showNotification(`${data.total_files} image(s) uploaded. Processing…`, 'info');
+            startPolling(data.job_id, data.total_files);
+
+        } catch (err) {
+            submitBtn.disabled = false;
+            cancelBtn.style.display = 'none';
+            progressPanel.classList.remove('active');
+            showNotification('Network error: ' + err.message, 'error');
+        }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        stopPolling();
+        submitBtn.disabled = false;
+        cancelBtn.style.display = 'none';
+        progressPanel.classList.remove('active');
+        progressSpinner.style.display = '';
+        showNotification('Cancelled. Images already submitted will still finish in the background.', 'info');
+    });
+
+    function escAttr(str) {
+        return (str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+    }
+
+    window.downloadSingle = function(filename, text) {
+        downloadText(text.replace(/\\n/g, '\n'), filename.replace(/\.[^.]+$/, '') + '.txt');
+    };
+
+    function downloadText(text, filename) {
+        const a = document.createElement('a');
+        a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+        a.download = filename;
+        a.click();
+    }
+
+    /* ── Search book ──────────────────────────────────────────── */
+    const searchBook          = document.getElementById('searchBook');
+    const searchForm          = document.getElementById('searchForm');
+    const searchBookContainer = document.querySelector('.search-book-container');
+    let isBookOpen = false, pendingSearch = null;
+
+    searchForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const name   = document.getElementById('searchName').value.trim();
+        const course = document.getElementById('searchCourse').value.trim();
+        if (!name && !course) { showNotification('Enter at least one search field.', 'error'); return; }
+        pendingSearch = { name, course };
+        if (!isBookOpen) { openSearchBook(() => performSearch(1)); }
+        else             { performSearch(1); }
+    });
+
+    function performSearch(page) {
+        if (!pendingSearch) return;
+        fetchSearch(pendingSearch.name, pendingSearch.course, page);
+    }
+
+    function fetchSearch(name, course, page) {
+        fetch('/api/search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ studentName: name, courseName: course, page })
+        })
+        .then(r => r.json())
+        .then(data => {
+            displaySearchPage(data);
+            if (data.success) showNotification('Results loaded.', 'success');
+            else showNotification(data.message || 'No records found.', 'error');
+        })
+        .catch(err => showNotification('Search error: ' + err.message, 'error'));
+    }
+
+    function openSearchBook(cb) {
+        searchBook.classList.replace('closed-book', 'open-book');
+        searchBookContainer.style.width = '100%';
+
+        const spine = document.createElement('div'); spine.className = 'book-spine';
+        searchBook.appendChild(spine);
+
+        const pages = document.createElement('div'); pages.className = 'book-pages';
+        pages.innerHTML = `
+            <div class="page page-left">
+                <h2 class="page-header">Search Results</h2>
+                <div class="notes-container"><div id="notesLeft"></div></div>
+            </div>
+            <div class="page page-right">
+                <h2 class="page-header">More Results</h2>
+                <div class="notes-container"><div id="notesRight"></div></div>
+            </div>`;
+        searchBook.appendChild(pages);
+        addPagination(pages.querySelector('.page-left'), pages.querySelector('.page-right'));
+        searchBook.querySelector('.search-form-on-cover')?.remove();
+        searchBook.querySelector('.cartoon-boy')?.remove();
+        isBookOpen = true;
+        setTimeout(() => cb && cb(), 900);
+    }
+
+    function addPagination(lp, rp) {
+        const prev = document.createElement('button'); prev.className = 'page-btn prev'; prev.innerHTML = '<i class="fas fa-arrow-left"></i>'; lp.appendChild(prev);
+        const next = document.createElement('button'); next.className = 'page-btn next'; next.innerHTML = '<i class="fas fa-arrow-right"></i>'; rp.appendChild(next);
+        const ind  = document.createElement('span');  ind.className  = 'page-indicator'; lp.appendChild(ind);
+    }
+
+    function displaySearchPage(data) {
+        const waitFor = (sel, cb, n = 10) => {
+            let i = 0;
+            const t = setInterval(() => {
+                const el = document.querySelector(sel);
+                if (el) { clearInterval(t); cb(el); }
+                else if (++i >= n) clearInterval(t);
+            }, 100);
+        };
+
+        waitFor('#notesLeft', notesLeft => waitFor('#notesRight', notesRight => {
+            notesLeft.innerHTML = ''; notesRight.innerHTML = '';
+
+            const prev = searchBook.querySelector('.page-btn.prev');
+            const next = searchBook.querySelector('.page-btn.next');
+            const ind  = searchBook.querySelector('.page-indicator');
+            if (prev) { prev.onclick = () => performSearch(data.page - 1); prev.disabled = data.page <= 1; }
+            if (next) { next.onclick = () => performSearch(data.page + 1); next.disabled = data.page >= data.total_pages; }
+            if (ind)  { ind.textContent = `Page ${data.page} of ${data.total_pages}`; }
+
+            if (!data.records || !data.records.length) {
+                const msg = `<div class="no-files-message"><i class="fas fa-folder-open no-files-icon"></i><p>${data.message || 'No records found.'}</p></div>`;
+                notesLeft.innerHTML = msg; notesRight.innerHTML = msg; return;
+            }
+
+            const half  = Math.ceil(data.records.length / 2);
+            const lgrid = document.createElement('div'); lgrid.className = 'notes-grid';
+            const rgrid = document.createElement('div'); rgrid.className = 'notes-grid';
+            data.records.slice(0, half).forEach(r => lgrid.appendChild(makeNoteCard(r)));
+            data.records.slice(half).forEach(r  => rgrid.appendChild(makeNoteCard(r)));
+            notesLeft.appendChild(lgrid); notesRight.appendChild(rgrid);
+        }));
+    }
+
+    function makeNoteCard(r) {
+        const card = document.createElement('div');
+        card.className = 'note-card';
+        const img = r.image ? `<img src="data:image/jpeg;base64,${r.image}" style="width:100%;height:45px;object-fit:cover;border:1px solid #ccc;margin-bottom:3px;">` : '';
+        card.innerHTML = `
+            <div class="note-header">
+                <div class="note-date-time">${r.date} ${r.time}</div>
+                <div class="note-name-course">${r.student_name} — ${r.course_name}</div>
+            </div>
+            ${r.filename ? `<div class="note-filename"><i class="fas fa-file-image"></i> ${r.filename}</div>` : ''}
+            ${img}
+            <div class="note-content">${r.content || ''}</div>`;
+        card.onclick = () => showModal(r);
+        return card;
+    }
+
+    function showModal(r) {
+        const modal   = document.getElementById('expandedModal');
+        const content = document.getElementById('expandedContent');
+        const img = r.image ? `<img src="data:image/jpeg;base64,${r.image}" class="expanded-image">` : '';
+        content.innerHTML = `
+            <div class="expanded-card">
+                <div class="note-header">
+                    <div class="note-date-time">${r.date} ${r.time}</div>
+                    <div class="note-name-course">${r.student_name} — ${r.course_name}</div>
+                </div>
+                ${r.filename ? `<p style="font-size:12px;color:#8b4513;margin-bottom:10px;"><i class="fas fa-file-image"></i> ${r.filename}</p>` : ''}
+                ${img}
+                <div class="expanded-content">${r.content || ''}</div>
+            </div>`;
+        modal.style.display = 'block';
+    }
+
+    document.querySelector('.close').onclick = () => document.getElementById('expandedModal').style.display = 'none';
+    window.onclick = e => {
+        if (e.target === document.getElementById('expandedModal'))
+            document.getElementById('expandedModal').style.display = 'none';
+    };
+
+});
+</script>
+</body>
+</html>
