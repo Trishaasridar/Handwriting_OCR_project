@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handwriting OCR Application v2</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-brain"></i> Handwriting OCR Application v2</h1>
+            <p class="subtitle">Advanced text extraction with enhanced accuracy and modern UI</p>
+            <div class="version-badge">Version 2.0.0</div>
+        </header>
+
+        <!-- Upload Section -->
+        <section class="upload-section">
+            <div class="upload-card">
+                <h2><i class="fas fa-cloud-upload-alt"></i> Upload Handwritten Document</h2>
+
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="studentName">
+                                <i class="fas fa-user"></i> Student Name *
+                            </label>
+                            <input type="text" id="studentName" name="studentName"
+                                   placeholder="Enter student name" required maxlength="255">
+                            <div class="field-error" id="studentNameError"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="courseName">
+                                <i class="fas fa-book"></i> Course Name *
+                            </label>
+                            <input type="text" id="courseName" name="courseName"
+                                   placeholder="Enter course name" required maxlength="255">
+                            <div class="field-error" id="courseNameError"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="handwrittenFile">
+                            <i class="fas fa-image"></i> Handwritten Document *
+                        </label>
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <div class="file-upload-content">
+                                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                <p>Click to browse or drag & drop your image here</p>
+                                <span class="file-types">Supported: PNG, JPG, JPEG, GIF, BMP, TIFF, WebP</span>
+                                <span class="file-size">Max size: 16MB</span>
+                            </div>
+                            <input type="file" id="handwrittenFile" name="handwrittenFile"
+                                   accept="image/*" required>
+                        </div>
+                        <div class="file-info">
+                            <span id="fileName">No file selected</span>
+                        </div>
+                        <div class="field-error" id="fileError"></div>
+                    </div>
+
+                    <button type="submit" id="uploadBtn" class="btn btn-primary">
+                        <i class="fas fa-magic"></i> Extract Text
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Results Display -->
+        <section class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2><i class="fas fa-search"></i> Search Results</h2>
+                <div class="search-form">
+                    <div class="search-inputs">
+                        <div class="search-group">
+                            <input type="text" id="searchStudentName"
+                                   placeholder="Search by student name">
+                        </div>
+                        <div class="search-group">
+                            <input type="text" id="searchCourseName"
+                                   placeholder="Search by course name">
+                        </div>
+                        <button id="searchBtn" class="btn btn-secondary">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Placeholder -->
+            <div class="results-placeholder" id="resultsPlaceholder">
+                <div class="placeholder-content">
+                    <i class="fas fa-book-open"></i>
+                    <h3>Ready to Search</h3>
+                    <p>Upload a document first, or search for existing records above</p>
+                </div>
+            </div>
+
+            <!-- Results Display -->
+            <div class="results-display" id="resultsDisplay">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+
+            <!-- Book-style Display -->
+            <div class="book-container" id="bookContainer">
+                <div class="book">
+                    <div class="book-page left-page" id="leftPage">
+                        <!-- Left page content -->
+                    </div>
+                    <div class="book-page right-page" id="rightPage">
+                        <!-- Right page content -->
+                    </div>
+                    <div class="book-spine"></div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination">
+                <!-- Pagination controls will be inserted here -->
+            </div>
+        </section>
+
+        <!-- Statistics Section -->
+        <section class="stats-section">
+            <div class="stats-card">
+                <h3><i class="fas fa-chart-bar"></i> Application Statistics</h3>
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalRecords">--</div>
+                        <div class="stat-label">Total Records</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avgConfidence">--%</div>
+                        <div class="stat-label">Avg Confidence</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="avgProcessingTime">--s</div>
+                        <div class="stat-label">Avg Processing</div>
+                    </div>
+                </div>
+                <button class="btn btn-outline" onclick="app.loadStats()">
+                    <i class="fas fa-refresh"></i> Refresh Stats
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Status Messages -->
+    <div class="status-messages" id="statusMessages">
+        <!-- Dynamic status messages will appear here -->
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p id="loadingText">Processing your document...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    <script>
+        // Initialize application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Global app instance
+            window.app = new OCRApplication();
+
+            // Load initial statistics
+            setTimeout(() => window.app.loadStats(), 1000);
+
+            // Auto-refresh stats every 30 seconds
+            setInterval(() => window.app.loadStats(), 30000);
+        });
+
+        // Add some utility functions to the window object
+        window.utils = {
+            formatDate: function(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            },
+
+            formatConfidence: function(confidence) {
+                return (confidence * 100).toFixed(1) + '%';
+            },
+
+            formatTime: function(seconds) {
+                return parseFloat(seconds).toFixed(2) + 's';
+            }
+        };
+    </script>
+</body>
+</html>
