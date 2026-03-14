@@ -53,14 +53,7 @@ class OCRService:
                 lang=self.language,
                 ocr_version="PP-OCRv4",
                 use_angle_cls=True,
-                device='cpu',
-                show_log=False,
-                det_db_thresh=0.3,
-                det_db_box_thresh=0.5,
-                det_limit_side_len=960,
-                rec_batch_num=6,
-                max_text_length=25,
-                rec_algorithm='SVTR_LCNet'
+                enable_mkldnn=False,
             )
             logger.info("OCR engine initialized successfully")
         except Exception as e:
@@ -255,24 +248,22 @@ class OCRService:
             List of OCR results with confidence filtering
         """
         try:
-            results = self.ocr.ocr(image_path, cls=True)
+            results = self.ocr.predict(image_path)
 
-            if not results or not results[0]:
+            if not results:
                 return []
 
-            # Filter results by confidence threshold
             filtered_results = []
-            for line in results[0]:
-                if len(line) >= 2:
-                    bbox, (text, confidence) = line[0], line[1]
+            for res in results:
+                rec_texts = res.get('rec_texts', [])
+                rec_scores = res.get('rec_scores', [])
+                rec_boxes = res.get('rec_boxes', [])
 
-                    # Apply confidence threshold
+                for text, confidence, bbox in zip(rec_texts, rec_scores, rec_boxes):
                     if confidence >= self.confidence_threshold:
-                        filtered_results.append({
-                            'bbox': bbox,
-                            'text': text,
-                            'confidence': confidence
-                        })
+                        x1, y1, x2, y2 = bbox
+                        poly = [[x1, y1], [x2, y1], [x2, y2], [x1, y2]]
+                        filtered_results.append({'bbox': poly, 'text': text, 'confidence': confidence})
 
             return filtered_results
 

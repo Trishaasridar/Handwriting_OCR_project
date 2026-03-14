@@ -8,6 +8,10 @@ For production deployment, use run.py instead.
 
 import os
 import sys
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+
 from app import create_app
 
 def main():

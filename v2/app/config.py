@@ -113,9 +113,13 @@ class ProductionConfig(Config):
     TESTING = False
 
     # Strict security settings
-    SECRET_KEY = os.environ.get('SECRET_KEY')
-    if not SECRET_KEY:
-        raise ValueError("SECRET_KEY environment variable is required in production")
+    SECRET_KEY = os.environ.get('SECRET_KEY') or Config.SECRET_KEY
+
+    @staticmethod
+    def init_app(app):
+        Config.init_app(app)
+        if not os.environ.get('SECRET_KEY'):
+            raise ValueError("SECRET_KEY environment variable is required in production")
 
     # Production database
     DB_HOST = os.environ.get('DB_HOST')

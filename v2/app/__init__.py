@@ -11,11 +11,11 @@ Version: 2.0.0
 import os
 import logging
 from flask import Flask
-from .config import Config
+from .config import Config, get_config
 from .models import init_db
 from .routes import register_routes
 
-def create_app(config_class=Config):
+def create_app(config_class=None):
     """
     Application factory function for creating Flask app instances.
 
@@ -25,6 +25,8 @@ def create_app(config_class=Config):
     Returns:
         Flask application instance
     """
+    if config_class is None:
+        config_class = get_config()
     app = Flask(__name__)
     app.config.from_object(config_class)
 
@@ -46,6 +48,7 @@ def setup_logging(app):
     """Configure application logging."""
     if not app.debug:
         # Production logging
+        os.makedirs('logs', exist_ok=True)
         handler = logging.FileHandler('logs/app.log')
         handler.setLevel(logging.INFO)
         formatter = logging.Formatter(
